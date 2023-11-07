@@ -15,6 +15,7 @@ def insert_df_to_db(df: pd.DataFrame, table_name: str, conn: sqlite3.Connection,
     Insert DataFrame into the database table.
     """
     df.to_sql(table_name, conn, if_exists=if_exists, index=False)
+    print(f"Inserted {len(df)} rows into {table_name} table successfully.")
 
 def create_connection(db_file):
 
@@ -26,38 +27,45 @@ def create_connection(db_file):
         print(e)
     return conn
 
+def main_csv_to_db(hired_employees_file_path, departments_file_path, jobs_file_path, database_path):
+    #Database conn
+    conn = create_connection(database_path)
+
+    #Reading CSV files into DataFrames
+    hired_employees_df = read_csv_to_df(hired_employees_file_path, hired_employees_columns)
+    departments_df = read_csv_to_df(departments_file_path, departments_columns)
+    jobs_df = read_csv_to_df(jobs_file_path, jobs_columns)
+
+    #Inserting DataFrames into the database
+    insert_df_to_db(hired_employees_df, 'hired_employees', conn)
+    insert_df_to_db(departments_df, 'departments', conn)
+    insert_df_to_db(jobs_df, 'jobs', conn)
+
+    #Commiting the changes and closing the connection
+    conn.commit()
+    conn.close()
+    
+
 
 #Tables structure
 hired_employees_columns = ['id', 'name', 'datetime', 'department_id', 'job_id']
 departments_columns = ['id', 'department']
 jobs_columns = ['id', 'job']
 
-
+#Using OS library to get the current path
 base_dir = os.path.dirname(os.path.realpath(__file__)) 
+
+#Creating database path
 database_path = os.path.join(base_dir, '../db/test_prod.db')
-
-db_dir = os.path.dirname(database_path)
-if not os.path.exists(db_dir):
-    os.makedirs(db_dir)
-
-database = "../db/test_prod.db"
-conn = create_connection(database_path)
-
-# Reading CSV files into DataFrames
-
+#Creating files paths
 hired_employees_file_path = os.path.join(base_dir, '../raw_csv/hired_employees.csv')
 departments_file_path = os.path.join(base_dir, '../raw_csv/departments.csv')
 jobs_file_path = os.path.join(base_dir, '../raw_csv/jobs.csv')
 
+#Creating database directory if it doesn't exist
+db_dir = os.path.dirname(database_path)
+if not os.path.exists(db_dir):
+    os.makedirs(db_dir)
 
-hired_employees_df = read_csv_to_df(hired_employees_file_path, hired_employees_columns)
-departments_df = read_csv_to_df(departments_file_path, departments_columns)
-jobs_df = read_csv_to_df(jobs_file_path, jobs_columns)
-
-# Inserting DataFrames into the database
-insert_df_to_db(hired_employees_df, 'hired_employees', conn)
-insert_df_to_db(departments_df, 'departments', conn)
-insert_df_to_db(jobs_df, 'jobs', conn)
-
-# Closing the connection
-conn.close()
+if __name__ == '__main__':
+    main_csv_to_db(hired_employees_file_path, departments_file_path, jobs_file_path, database_path)
