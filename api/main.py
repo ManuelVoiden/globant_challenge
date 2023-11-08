@@ -1,8 +1,11 @@
 from flask import Flask, request, jsonify
 from flask_restful import Resource, Api
+from src.models.schemas import EmployeeModel, DepartmentModel, JobModel
 import pandas as pd
 import sqlite3
 from sqlite3 import Error
+import pydantic
+from pydantic import ValidationError
 
 app = Flask(__name__)
 api = Api(app)
@@ -27,13 +30,17 @@ class HiredEmployees(Resource):
 
     def post(self):
         conn = create_connection()
-        # Assuming JSON request
+        
         data = request.get_json()
-        df = pd.DataFrame(data)
-        df.to_sql('hired_employees', conn, if_exists='append', index=False)
-        conn.commit()
-        conn.close()
-        return {'message': 'Data inserted successfully'}, 201
+        try: 
+            validated_data = [EmployeeModel(**item) for item in data]
+            df = pd.DataFrame(data)
+            df.to_sql('hired_employees', conn, if_exists='append', index=False)
+            conn.commit()
+            conn.close()
+            return {'message': 'Data inserted successfully'}, 201
+        except ValidationError as e:
+            return {'message': 'Validation error', 'errors': e.errors()}, 400
 
 
 class Departments(Resource):
