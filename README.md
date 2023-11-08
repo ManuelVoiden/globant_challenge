@@ -72,7 +72,7 @@ POST /restore/<table_name> - Restore the specified table from a backup. The requ
 {"date": "YYYY-MM-DD"}
 Replace YYYY-MM-DD with the date of the backup you wish to restore from.
 
-#### 5. Challenge #2 endpoints
+#### 5. Challenge #2 Endpoints
 
-GET /metrics/employees-by-quarter - The response will be the table with the results, in alphabetical order in both the jobs and departments column
-GET /metrics/departments-above-mean - The response will be the departments that hired more than the mean of employees hired by departments, its sorted in a descending way
+1. GET /metrics/employees-by-quarter - The response will be the table with the results, in alphabetical order in both the jobs and departments column
+2. GET /metrics/departments-above-mean - The response will be the departments that hired more than the mean of employees hired by departments, its sorted in a descending way
