@@ -1,10 +1,15 @@
 import os
 import fastavro
 from sqlite3 import connect
+import pandas as pd
 
 def backup_table_to_avro(table_name, db_path, avro_file_path):
     # Establish a connection to the database
-    conn = connect(db_path)
+    
+    base_dir = os.path.abspath(os.path.dirname(__file__))  # Absolute path to the api folder
+    database_path = os.path.join(base_dir, '../db/test_prod.db')  # Corrected path to the db folder
+    
+    conn = connect(database_path)
     cursor = conn.cursor()
     
     # Query data from the table
@@ -23,6 +28,8 @@ def backup_table_to_avro(table_name, db_path, avro_file_path):
         'fields': [{'name': col_name, 'type': ['null', 'string']} for col_name in column_names],
     }
     
+    os.makedirs(os.path.dirname(avro_file_path), exist_ok=True)
+    
     # Write the records to an AVRO file
     with open(avro_file_path, 'wb') as out:
         fastavro.writer(out, schema, records)
@@ -31,7 +38,11 @@ def backup_table_to_avro(table_name, db_path, avro_file_path):
     conn.close()
 
 def restore_table_from_avro(table_name, db_path, avro_file_path):
-    conn = sqlite3.connect(db_path)
+    
+    base_dir = os.path.abspath(os.path.dirname(__file__))  # Absolute path to the api folder
+    database_path = os.path.join(base_dir, '../db/test_prod.db')  # Corrected path to the db folder
+    
+    conn = sqlite3.connect(database_path)
     cursor = conn.cursor()
 
     # Clear the table before restoring
@@ -47,12 +58,3 @@ def restore_table_from_avro(table_name, db_path, avro_file_path):
     df.to_sql(table_name, conn, if_exists='replace', index=False)
     conn.commit()
     conn.close()
-
-
-
-# Example usage
-backup_table_to_avro(
-    table_name='hired_employees',
-    db_path='../db/test_prod.db',
-    avro_file_path='../backup/hired_employees.avro'
-)

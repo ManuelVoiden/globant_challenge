@@ -185,12 +185,67 @@ class Restore(Resource):
             return {'message': 'Restore failed', 'errors': str(e)}, 500
 
 
+class EmployeeStatsByQuarter(Resource):
+    def get(self):
+        conn = create_connection()
+        query = """
+        SELECT
+            d.department,
+            j.job,
+            SUM(CASE WHEN strftime('%m', e.datetime) IN ('01', '02', '03') THEN 1 ELSE 0 END) AS Q1,
+            SUM(CASE WHEN strftime('%m', e.datetime) IN ('04', '05', '06') THEN 1 ELSE 0 END) AS Q2,
+            SUM(CASE WHEN strftime('%m', e.datetime) IN ('07', '08', '09') THEN 1 ELSE 0 END) AS Q3,
+            SUM(CASE WHEN strftime('%m', e.datetime) IN ('10', '11', '12') THEN 1 ELSE 0 END) AS Q4
+        FROM hired_employees e
+        JOIN departments d ON e.department_id = d.id
+        JOIN jobs j ON e.job_id = j.id
+        WHERE strftime('%Y', e.datetime) = '2021'
+        GROUP BY d.department, j.job
+        ORDER BY d.department, j.job;
+        """
+        df = pd.read_sql_query(query, conn)
+        conn.close()
+        return jsonify(df.to_dict(orient='records'))
+
+
+class DepartmentsAboveMean(Resource):
+    def get(self):
+        conn = create_connection()
+        query = """
+        WITH DepartmentHires AS (
+            SELECT
+                d.id,
+                d.department,
+                COUNT(e.id) as hired
+            FROM departments d
+            LEFT JOIN hired_employees e ON d.id = e.department_id
+                AND strftime('%Y', e.datetime) = '2021'
+            GROUP BY d.id
+        ),
+        AverageHires AS (
+            SELECT AVG(hired) as average_hired FROM DepartmentHires
+        )
+        SELECT
+            dh.id,
+            dh.department,
+            dh.hired
+        FROM DepartmentHires dh, AverageHires
+        WHERE dh.hired > AverageHires.average_hired
+        ORDER BY dh.hired DESC;
+        """
+        df = pd.read_sql_query(query, conn)
+        conn.close()
+        return jsonify(df.to_dict(orient='records'))
+
+
 # Add the resource to the API
 api.add_resource(HiredEmployees, '/hired_employees')
 api.add_resource(Departments, '/departments')
 api.add_resource(Jobs, '/jobs')
 api.add_resource(Backup, '/backup/<string:table_name>')
 api.add_resource(Restore, '/restore/<string:table_name>')
+api.add_resource(EmployeeStatsByQuarter, '/metrics/employees-by-quarter')
+api.add_resource(DepartmentsAboveMean, '/metrics/departments-above-mean')
 
 if __name__ == '__main__':
     app.run(debug=True)
