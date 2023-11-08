@@ -35,12 +35,23 @@ source venv/bin/activate
 
 pip install -r requirements.txt
 
-#### 3. Start the Flask development server
+#### 3. CSV data to DB
+
+In order to create the initial SQLite database and then do the fill up with the CSV information two files should be executed:
+
+1. python src/databases.py
+2. python src/csv_to_db.py
+
+databases.py is the file that creates the SQLite database along the schemas and csv_to_db.py is the one to copy and paste the information inside the db for each table, its possible that if csv_to_db.py is executed more than once an error will raise as there is an UNIQUE constraint for avoiding duplicate data.
+
+The resulting database is located in db/ inside the root folder and is defaulted by the name test_prod.db
+
+#### 4. Start the Flask development server
 
 python api/main.py
 The API will be available at <http://127.0.0.1:5000/>
 
-#### 4. API endpoints
+#### 5. API endpoints
 
 ##### Get Data
 
@@ -72,7 +83,7 @@ POST /restore/<table_name> - Restore the specified table from a backup. The requ
 {"date": "YYYY-MM-DD"}
 Replace YYYY-MM-DD with the date of the backup you wish to restore from.
 
-#### 5. Challenge #2 Endpoints
+#### 6. Challenge #2 Endpoints
 
 1. GET /metrics/employees-by-quarter - The response will be the table with the results, in alphabetical order in both the jobs and departments column
 2. GET /metrics/departments-above-mean - The response will be the departments that hired more than the mean of employees hired by departments, its sorted in a descending way
