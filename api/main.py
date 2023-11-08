@@ -1,3 +1,8 @@
+import sys
+import os
+from pathlib import Path
+sys.path.append(str(Path(__file__).resolve().parents[1]))
+
 from flask import Flask, request, jsonify
 from flask_restful import Resource, Api
 from src.models.schemas import EmployeeModel, DepartmentModel, JobModel
@@ -13,8 +18,10 @@ api = Api(app)
 # Establish a connection to the database
 def create_connection():
     conn = None
+    base_dir = os.path.abspath(os.path.dirname(__file__))  # Absolute path to the api folder
+    database_path = os.path.join(base_dir, '../db/test_prod.db')  # Corrected path to the db folder
     try:
-        conn = sqlite3.connect('../db/test_prod.db')
+        conn = sqlite3.connect(database_path)
         return conn
     except Error as e:
         print(e)
