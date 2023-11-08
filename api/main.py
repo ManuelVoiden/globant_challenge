@@ -35,8 +35,45 @@ class HiredEmployees(Resource):
         conn.close()
         return {'message': 'Data inserted successfully'}, 201
 
+
+class Departments(Resource):
+    def get(self):
+        conn = create_connection()
+        df = pd.read_sql_query("SELECT * FROM departments", conn)
+        conn.close()
+        return jsonify(df.to_dict(orient='records'))
+
+    def post(self):
+        conn = create_connection()
+        # Assuming JSON request
+        data = request.get_json()
+        df = pd.DataFrame(data)
+        df.to_sql('departments', conn, if_exists='append', index=False)
+        conn.commit()
+        conn.close()
+        return {'message': 'Data inserted successfully'}, 201
+
+class Jobs(Resource):
+    def get(self):
+        conn = create_connection()
+        df = pd.read_sql_query("SELECT * FROM jobs", conn)
+        conn.close()
+        return jsonify(df.to_dict(orient='records'))
+
+    def post(self):
+        conn = create_connection()
+        # Assuming JSON request
+        data = request.get_json()
+        df = pd.DataFrame(data)
+        df.to_sql('jobs', conn, if_exists='append', index=False)
+        conn.commit()
+        conn.close()
+        return {'message': 'Data inserted successfully'}, 201
+
 # Add the resource to the API
 api.add_resource(HiredEmployees, '/hired_employees')
+api.add_resource(Departments, '/departments')
+api.add_resource(Jobs, '/jobs')
 
 if __name__ == '__main__':
     app.run(debug=True)
