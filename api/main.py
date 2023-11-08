@@ -3,14 +3,19 @@ import os
 from pathlib import Path
 sys.path.append(str(Path(__file__).resolve().parents[1]))
 
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, send_from_directory
 from flask_restful import Resource, Api
 from src.models.schemas import EmployeeModel, DepartmentModel, JobModel
+from src.backup_utils import backup_table_to_avro, restore_table_from_avro
 import pandas as pd
 import sqlite3
 from sqlite3 import Error
 import pydantic
 from pydantic import ValidationError
+
+from datetime import datetime
+
+import fastavro
 
 app = Flask(__name__)
 api = Api(app)
@@ -136,10 +141,56 @@ class Jobs(Resource):
         finally:
             conn.close()
 
+class Backup(Resource):
+    def get(self, table_name):
+        # Define the backup file path with the current date
+        date_str = datetime.now().strftime("%Y-%m-%d")
+        base_dir = os.path.abspath(os.path.dirname(__file__))
+        backup_dir = os.path.join(base_dir, '../backup')
+        backup_file_path = os.path.join(backup_dir, f'{table_name}_{date_str}.avro')
+        
+        if not os.path.exists(backup_dir):
+            os.makedirs(backup_dir)
+        
+        try:
+            # Ensure the database path is also absolute
+            db_path = os.path.join(base_dir, '../db/test_prod.db')
+            backup_table_to_avro(table_name, db_path, backup_file_path)
+            
+            # Send the file
+            return send_from_directory(directory=os.path.dirname(backup_file_path),filename=os.path.basename(backup_file_path),as_attachment=True)
+        except Exception as e:
+            return {'message': 'Backup failed', 'errors': str(e)}, 500
+
+class Restore(Resource):
+    def post(self, table_name):
+        # Retrieve the date from the request to find the backup file
+        data = request.get_json()
+        backup_date = data.get('date')  # Expecting a date in 'YYYY-MM-DD' format
+        if not backup_date:
+            return {'message': 'Date is required for restore operation'}, 400
+        
+        base_dir = os.path.abspath(os.path.dirname(__file__))
+        backup_file_path = os.path.join(base_dir, f'../backup/{table_name}_{backup_date}.avro')
+        
+        try:
+            # Ensure the database path is also absolute
+            db_path = os.path.join(base_dir, '../db/test_prod.db')
+            restore_table_from_avro(table_name, db_path, backup_file_path)
+            
+            return {'message': f'Table {table_name} restored successfully'}, 200
+        except FileNotFoundError:
+            return {'message': 'Backup file not found'}, 404
+        except Exception as e:
+            return {'message': 'Restore failed', 'errors': str(e)}, 500
+
+
 # Add the resource to the API
 api.add_resource(HiredEmployees, '/hired_employees')
 api.add_resource(Departments, '/departments')
 api.add_resource(Jobs, '/jobs')
+api.add_resource(Backup, '/backup/<string:table_name>')
+api.add_resource(Restore, '/restore/<string:table_name>')
 
 if __name__ == '__main__':
     app.run(debug=True)

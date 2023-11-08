@@ -30,6 +30,26 @@ def backup_table_to_avro(table_name, db_path, avro_file_path):
     # Close the database connection
     conn.close()
 
+def restore_table_from_avro(table_name, db_path, avro_file_path):
+    conn = sqlite3.connect(db_path)
+    cursor = conn.cursor()
+
+    # Clear the table before restoring
+    cursor.execute(f'DELETE FROM {table_name}')
+    conn.commit()
+
+    with open(avro_file_path, 'rb') as avro_file:
+        reader = fastavro.reader(avro_file)
+        records = [record for record in reader]
+
+    # Convert the records to a DataFrame and write to the SQL table
+    df = pd.DataFrame(records)
+    df.to_sql(table_name, conn, if_exists='replace', index=False)
+    conn.commit()
+    conn.close()
+
+
+
 # Example usage
 backup_table_to_avro(
     table_name='hired_employees',
