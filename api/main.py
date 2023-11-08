@@ -39,14 +39,20 @@ class HiredEmployees(Resource):
         conn = create_connection()
         
         data = request.get_json()
-        try: 
+        try:
+            # Validate data against the schema
             validated_data = [EmployeeModel(**item) for item in data]
-            df = pd.DataFrame(data)
+            # Convert validated data back to list of dicts
+            insert_data = [item.dict() for item in validated_data]
+            
+            # Insert validated and transformed data into the database
+            df = pd.DataFrame(insert_data)
             df.to_sql('hired_employees', conn, if_exists='append', index=False)
             conn.commit()
             conn.close()
             return {'message': 'Data inserted successfully'}, 201
         except ValidationError as e:
+            conn.close()
             return {'message': 'Validation error', 'errors': e.errors()}, 400
 
 
@@ -61,11 +67,22 @@ class Departments(Resource):
         conn = create_connection()
         # Assuming JSON request
         data = request.get_json()
-        df = pd.DataFrame(data)
-        df.to_sql('departments', conn, if_exists='append', index=False)
-        conn.commit()
-        conn.close()
-        return {'message': 'Data inserted successfully'}, 201
+        
+        try:
+            # Validate data against the schema
+            validated_data = [DepartmentModel(**item) for item in data]
+            # Convert validated data back to list of dicts
+            insert_data = [item.dict() for item in validated_data]
+            
+            # Insert validated and transformed data into the database
+            df = pd.DataFrame(insert_data)
+            df.to_sql('departments', conn, if_exists='append', index=False)
+            conn.commit()
+            conn.close()
+            return {'message': 'Data inserted successfully'}, 201
+        except ValidationError as e:
+            conn.close()
+            return {'message': 'Validation error', 'errors': e.errors()}, 400
 
 class Jobs(Resource):
     def get(self):
@@ -78,11 +95,21 @@ class Jobs(Resource):
         conn = create_connection()
         # Assuming JSON request
         data = request.get_json()
-        df = pd.DataFrame(data)
-        df.to_sql('jobs', conn, if_exists='append', index=False)
-        conn.commit()
-        conn.close()
-        return {'message': 'Data inserted successfully'}, 201
+        
+        try:
+            # Validate data against the schema
+            validated_data = [JobModel(**item) for item in data]
+            # Convert validated data back to list of dicts
+            insert_data = [item.dict() for item in validated_data]
+            
+            df = pd.DataFrame(insert_data)
+            df.to_sql('jobs', conn, if_exists='append', index=False)
+            conn.commit()
+            conn.close()
+            return {'message': 'Data inserted successfully'}, 201
+        except ValidationError as e:
+            conn.close()
+            return {'message': 'Validation error', 'errors': e.errors()}, 400
 
 # Add the resource to the API
 api.add_resource(HiredEmployees, '/hired_employees')
