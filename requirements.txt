@@ -3,3 +3,4 @@ flask-restful
 pandas
 sqlite3
 pydantic
+fastavro
