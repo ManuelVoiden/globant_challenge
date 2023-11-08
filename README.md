@@ -71,3 +71,8 @@ POST /restore/<table_name> - Restore the specified table from a backup. The requ
 1. Send a POST request to <http://127.0.0.1:5000/restore/hired_employees> with a JSON body like
 {"date": "YYYY-MM-DD"}
 Replace YYYY-MM-DD with the date of the backup you wish to restore from.
+
+#### 5. Challenge #2 endpoints
+
+GET /metrics/employees-by-quarter - The response will be the table with the results, in alphabetical order in both the jobs and departments column
+GET /metrics/departments-above-mean - The response will be the departments that hired more than the mean of employees hired by departments, its sorted in a descending way
