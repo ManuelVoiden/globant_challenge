@@ -79,24 +79,29 @@ class Departments(Resource):
 
     def post(self):
         conn = create_connection()
-        # Assuming JSON request
         data = request.get_json()
-        
+
+        # Wrap single record into a list if it's a dictionary
+        if isinstance(data, dict):
+            data = [data]
+
+        # Ensure the batch size limit
+        if len(data) > 1000:
+            return {'message': 'Batch size exceeds the limit of 1000 rows'}, 400
+
         try:
-            # Validate data against the schema
             validated_data = [DepartmentModel(**item) for item in data]
-            # Convert validated data back to list of dicts
             insert_data = [item.dict() for item in validated_data]
             
-            # Insert validated and transformed data into the database
             df = pd.DataFrame(insert_data)
             df.to_sql('departments', conn, if_exists='append', index=False)
             conn.commit()
-            conn.close()
             return {'message': 'Data inserted successfully'}, 201
+
         except ValidationError as e:
-            conn.close()
             return {'message': 'Validation error', 'errors': e.errors()}, 400
+        finally:
+            conn.close()
 
 class Jobs(Resource):
     def get(self):
@@ -107,23 +112,29 @@ class Jobs(Resource):
 
     def post(self):
         conn = create_connection()
-        # Assuming JSON request
         data = request.get_json()
-        
+
+        # Wrap single record into a list if it's a dictionary
+        if isinstance(data, dict):
+            data = [data]
+
+        # Ensure the batch size limit
+        if len(data) > 1000:
+            return {'message': 'Batch size exceeds the limit of 1000 rows'}, 400
+
         try:
-            # Validate data against the schema
             validated_data = [JobModel(**item) for item in data]
-            # Convert validated data back to list of dicts
             insert_data = [item.dict() for item in validated_data]
             
             df = pd.DataFrame(insert_data)
             df.to_sql('jobs', conn, if_exists='append', index=False)
             conn.commit()
-            conn.close()
             return {'message': 'Data inserted successfully'}, 201
+
         except ValidationError as e:
-            conn.close()
             return {'message': 'Validation error', 'errors': e.errors()}, 400
+        finally:
+            conn.close()
 
 # Add the resource to the API
 api.add_resource(HiredEmployees, '/hired_employees')
