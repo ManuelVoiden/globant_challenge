@@ -39,21 +39,35 @@ class HiredEmployees(Resource):
         conn = create_connection()
         
         data = request.get_json()
+        
+        if isinstance(data, dict):
+            data = [data]  # Now `data` is a list with one dict
+        
+        # Ensure that data is a list of records
+        if not isinstance(data, list):
+            return {'message': 'Input data should be a list of records'}, 400
+        
+        # Check if the batch size is within the limit
+        if len(data) > 1000:
+            return {'message': 'Batch size exceeds the limit of 1000 rows'}, 400
+
         try:
-            # Validate data against the schema
-            validated_data = [EmployeeModel(**item) for item in data]
-            # Convert validated data back to list of dicts
-            insert_data = [item.dict() for item in validated_data]
+            # Start a transaction
+            with conn:
+                # Validate and insert each record in the batch
+                for item in data:
+                    validated_item = EmployeeModel(**item)
+                    df = pd.DataFrame([validated_item.dict()])
+                    df.to_sql('hired_employees', conn, if_exists='append', index=False)
             
-            # Insert validated and transformed data into the database
-            df = pd.DataFrame(insert_data)
-            df.to_sql('hired_employees', conn, if_exists='append', index=False)
-            conn.commit()
-            conn.close()
-            return {'message': 'Data inserted successfully'}, 201
+            return {'message': 'Batch data inserted successfully'}, 201
+
         except ValidationError as e:
-            conn.close()
             return {'message': 'Validation error', 'errors': e.errors()}, 400
+        except Error as e:
+            return {'message': 'Database error', 'errors': str(e)}, 500
+        finally:
+            conn.close()
 
 
 class Departments(Resource):
